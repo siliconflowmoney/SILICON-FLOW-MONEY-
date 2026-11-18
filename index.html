@@ -334,7 +334,37 @@ button{cursor:pointer}
 .tierTitle{font-weight:800;font-size:14px;color:#dff8ff}
 .tierSub{color:#70899a;font-size:11px;line-height:1.5;margin:4px 0 10px}
 .tierList{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:230px;overflow:auto}
-.tierRow{display:flex;flex-direction:column;padding:8px 9px;border-radius:9px;background:#0b1620;border:1px solid #152a38}
+.tierRow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;font-family:inherit;cursor:pointer;padding:8px 9px;border-radius:9px;background:#0b1620;border:1px solid #152a38;-webkit-tap-highlight-color:transparent}
+.tierRow:active{transform:scale(.97)}
+.tierRow.selected{border-color:#00d9ff;background:rgba(0,217,255,.12);box-shadow:0 0 0 1px rgba(0,217,255,.35)}
+
+/* glowing, shining look so the rows invite a tap */
+.tierRow{position:relative;overflow:hidden;border-color:#1b5a70;background:linear-gradient(145deg,#0e2231,#0a1822)}
+.tierRow b,.tierRow span{position:relative;z-index:1}
+.tierRow::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  border:1px solid rgba(0,229,255,.7);
+  box-shadow:inset 0 0 14px rgba(0,217,255,.28),0 0 12px rgba(0,217,255,.45);
+  opacity:.2;animation:tierGlow 2.4s ease-in-out infinite;
+}
+.tierRow::after{
+  content:"";position:absolute;top:0;left:-60%;width:38%;height:100%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.2),transparent);
+  transform:skewX(-20deg);animation:tierShine 3.4s ease-in-out infinite;
+}
+.tierRow:nth-child(3n+2)::before{animation-delay:.8s}
+.tierRow:nth-child(3n+2)::after{animation-delay:1.1s}
+.tierRow:nth-child(3n)::before{animation-delay:1.6s}
+.tierRow:nth-child(3n)::after{animation-delay:2.2s}
+.tierRow.selected::before{opacity:1;animation:none;border-color:#00e5ff}
+.tierRow.selected{background:linear-gradient(145deg,rgba(0,229,255,.22),rgba(22,140,255,.18))}
+@keyframes tierGlow{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes tierShine{0%{left:-60%}55%,100%{left:130%}}
+@media (prefers-reduced-motion:reduce){
+  .tierRow::before,.tierRow::after{animation:none}
+  .tierRow::before{opacity:.5}
+  .tierRow::after{display:none}
+}
 .tierRow b{font-size:12px;color:#bfeeff}
 .tierRow span{font-size:12px;font-weight:800;color:#ffe28a;margin-top:2px}
 
@@ -2749,14 +2779,38 @@ function renderTiers(){
   let html = "";
 
   TIER_AMOUNTS.forEach(function(n){
+    const sel = (String(n) === String(amountInputValue())) ? " selected" : "";
     html +=
-      '<div class="tierRow"><b>' + n.toLocaleString() + ' SFC</b>' +
-      '<span>' + fmtNaira(n * Number(RATE)) + '</span></div>';
+      '<button type="button" class="tierRow' + sel + '" data-n="' + n + '"><b>' + n.toLocaleString() + ' SFC</b>' +
+      '<span>' + fmtNaira(n * Number(RATE)) + '</span></button>';
   });
 
   list.innerHTML = html;
 
 }
+
+function amountInputValue(){
+  const el = document.getElementById("buyAmount");
+  return el ? el.value.trim() : "";
+}
+
+function markSelectedTier(){
+  const v = amountInputValue();
+  document.querySelectorAll("#tierList .tierRow").forEach(function(row){
+    row.classList.toggle("selected", row.getAttribute("data-n") === v);
+  });
+}
+
+/* Tap any row to choose that amount */
+document.getElementById("tierList").addEventListener("click", function(e){
+  const row = e.target.closest(".tierRow");
+  if(!row) return;
+  document.getElementById("buyAmount").value = row.getAttribute("data-n");
+  markSelectedTier();
+});
+
+/* Typing an amount by hand keeps the highlight in sync */
+document.getElementById("buyAmount").addEventListener("input", markSelectedTier);
 
 renderTiers();
 
