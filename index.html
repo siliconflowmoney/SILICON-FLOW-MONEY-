@@ -375,6 +375,11 @@ button{cursor:pointer}
 }
 .buyTimer.expired{color:#ff8f8f;background:rgba(239,68,68,.10);border-color:#5a2929}
 
+.payStep{display:none}
+.payStep .whatsappBtn{margin-bottom:15px}
+.payStep.show{display:block;animation:payReveal .35s ease}
+@keyframes payReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
 .howBox{border:1px solid #1d3b4e;background:#050b12;border-radius:14px;padding:13px 14px;margin-bottom:15px}
 .howBox .howTitle{font-weight:800;font-size:13px;color:#dff8ff;margin-bottom:6px}
 .howBox p{color:#8ea8b8;font-size:11.5px;line-height:1.65}
@@ -1076,9 +1081,19 @@ button{cursor:pointer}
     <div class="modalTitle">💳 Buy SFC</div>
 
     <div class="modalSub">
-      Use the payment account below, complete your payment, then tap
-      "I Have Paid" to send your request straight to Silicon Flow support chat.
+      Tap the amount of SFC you want. The payment account, countdown and
+      "I Have Paid" button will open right after you choose.
     </div>
+
+    <div class="tierBox">
+      <div class="tierTitle">🚀 The higher you buy, the higher you gain</div>
+      <div class="tierSub">Value at the current rate. Amounts update automatically whenever the rate changes.</div>
+      <div class="tierList" id="tierList"></div>
+    </div>
+
+    <input id="buyAmount" class="amountInput" type="number" min="1" step="1" placeholder="Enter SFC amount">
+
+    <div class="payStep" id="payStep">
 
     <div class="buyTimer" id="buyTimer">
       <span id="buyTimerLabel">⏳ Complete payment within <strong id="buyTimerText">10:00</strong></span>
@@ -1099,10 +1114,8 @@ button{cursor:pointer}
       </div>
     </div>
 
-    <div class="tierBox">
-      <div class="tierTitle">🚀 The higher you buy, the higher you gain</div>
-      <div class="tierSub">Value at the current rate. Amounts update automatically whenever the rate changes.</div>
-      <div class="tierList" id="tierList"></div>
+    <button class="whatsappBtn" onclick="sendBuyRequest()">✅ I HAVE PAID</button>
+
     </div>
 
     <div class="howBox">
@@ -1112,9 +1125,6 @@ button{cursor:pointer}
       <p>When you withdraw, your SFC is converted at whatever the rate is at that time.</p>
     </div>
 
-    <input id="buyAmount" class="amountInput" type="number" min="1" step="1" placeholder="Enter SFC amount">
-
-    <button class="whatsappBtn" onclick="sendBuyRequest()">✅ I HAVE PAID</button>
     <button class="closeBtn" onclick="closeBuyModal()">CLOSE</button>
 
   </div>
@@ -1965,7 +1975,7 @@ async function buyCoin(){
 
   document.getElementById("buyModal").style.display = "block";
 
-  startBuyTimer();
+  resetBuyPayStep();
 
   document.getElementById("paymentAccountName").textContent = "Loading...";
   document.getElementById("paymentBankName").textContent = "Loading...";
@@ -2030,6 +2040,37 @@ function closeBuyModal(){
 var buyDeadline = null;
 var buyPaidAttempt = 0;
 var buyTimerInterval = null;
+
+function resetBuyPayStep(){
+
+  stopBuyTimer();
+  buyDeadline = null;
+  buyPaidAttempt = 0;
+
+  const step = document.getElementById("payStep");
+  if(step) step.classList.remove("show");
+
+  const input = document.getElementById("buyAmount");
+  if(input) input.value = "";
+
+  if(typeof markSelectedTier === "function") markSelectedTier();
+
+}
+
+/* Shows the payment account, countdown and "I Have Paid" once an amount is chosen */
+function revealBuyPayStep(){
+
+  const step = document.getElementById("payStep");
+  if(!step || step.classList.contains("show")) return;
+
+  step.classList.add("show");
+  startBuyTimer();
+
+  setTimeout(function(){
+    step.scrollIntoView({behavior:"smooth", block:"center"});
+  }, 80);
+
+}
 
 function startBuyTimer(){
 
@@ -2807,10 +2848,14 @@ document.getElementById("tierList").addEventListener("click", function(e){
   if(!row) return;
   document.getElementById("buyAmount").value = row.getAttribute("data-n");
   markSelectedTier();
+  revealBuyPayStep();
 });
 
 /* Typing an amount by hand keeps the highlight in sync */
-document.getElementById("buyAmount").addEventListener("input", markSelectedTier);
+document.getElementById("buyAmount").addEventListener("input", function(){
+  markSelectedTier();
+  if(Number(this.value) > 0) revealBuyPayStep();
+});
 
 renderTiers();
 
